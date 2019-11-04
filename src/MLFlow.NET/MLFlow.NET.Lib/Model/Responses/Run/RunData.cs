@@ -19,7 +19,7 @@ namespace MLFlow.NET.Lib.Model.Responses.Run
         [JsonProperty("key")]
         public string Key { get; set; }
         [JsonProperty("value")]
-        public float Value { get; set; }
+        public double Value { get; set; }
         [JsonProperty("timestamp")]
         public int Timestamp { get; set; }
 

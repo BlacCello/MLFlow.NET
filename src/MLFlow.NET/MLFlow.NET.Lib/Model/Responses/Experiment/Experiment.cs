@@ -5,7 +5,7 @@ namespace MLFlow.NET.Lib.Model.Responses.Experiment
     public class Experiment
     {
         [JsonProperty("experiment_id")]
-        public int ExperimentId { get; set; }
+        public string ExperimentId { get; set; }
         [JsonProperty("name")]
         public string Name { get; set; }
         [JsonProperty("artifact_location")]

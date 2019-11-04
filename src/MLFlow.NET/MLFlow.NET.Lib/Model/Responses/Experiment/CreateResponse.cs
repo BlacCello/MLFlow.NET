@@ -8,6 +8,6 @@ namespace MLFlow.NET.Lib.Model.Responses.Experiment
     public class CreateResponse
     {
         [JsonProperty("experiment_id")]
-        public int ExperimentId { get; set; }
+        public string ExperimentId { get; set; }
     }
 }

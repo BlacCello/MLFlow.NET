@@ -57,6 +57,12 @@ namespace MLFlow.NET.Lib.Services
             return response;
         }
 
+        public async Task<RunResponse> UpdateRun(UpdateRunRequest request)
+        {
+            var response = await _httpService.Post<RunResponse, UpdateRunRequest>(_getPath(MLFlowAPI.Runs.BasePath, MLFlowAPI.Runs.Create), request);
+            return response;
+        }
+
         public async Task<ListExperimentsResponse> ListExperiments(ViewType viewtype)
         {
 
@@ -68,7 +74,7 @@ namespace MLFlow.NET.Lib.Services
             return response;
         }
 
-        public async Task<GetExperimentResponse> GetExperiment(int experiment_id)
+        public async Task<GetExperimentResponse> GetExperiment(string experiment_id)
         {
             var response = await _httpService.Get<GetExperimentResponse, Object>(
                 _getPath(MLFlowAPI.Experiments.BasePath, MLFlowAPI.Experiments.Get),
@@ -78,8 +84,8 @@ namespace MLFlow.NET.Lib.Services
         }
 
 
-        public async Task<LogMetric> LogMetric(string run_uuid,
-            string key, float value, long? timeStamp = null)
+        public async Task<LogMetric> LogMetric(string run_id,
+            string key, double value, long? timeStamp = null)
         {
             if (!timeStamp.HasValue)
             {
@@ -90,7 +96,7 @@ namespace MLFlow.NET.Lib.Services
                 _getPath(MLFlowAPI.Runs.BasePath,
                     MLFlowAPI.Runs.LogMetric),
                 _getParameters(
-                    ("run_uuid", run_uuid),
+                    ("run_id", run_id),
                     ("key", key),
                     ("value", value.ToString()),
                     ("timeStamp", timeStamp.ToString())
@@ -99,14 +105,35 @@ namespace MLFlow.NET.Lib.Services
             return response;
         }
 
-        public async Task<LogParam> LogParameter(string run_uuid,
+        public async Task<LogMetric> LogMetric(string run_id, string key, double value, int step, long? timeStamp = null)
+        {
+            if (!timeStamp.HasValue)
+            {
+                timeStamp = UnixDateTimeHelpers.GetCurrentTimestampMilliseconds();
+            }
+
+            var response = await _httpService.Post<LogMetric, Dictionary<string, string>>(
+                _getPath(MLFlowAPI.Runs.BasePath,
+                    MLFlowAPI.Runs.LogMetric),
+                _getParameters(
+                    ("run_id", run_id),
+                    ("key", key),
+                    ("value", value.ToString()),
+                    ("step", step.ToString()),
+                    ("timeStamp", timeStamp.ToString())
+                ));
+
+            return response;
+        }
+
+        public async Task<LogParam> LogParameter(string run_id,
             string key, string value)
         {
             var response = await _httpService.Post<LogParam, Dictionary<string, string>>(
                 _getPath(MLFlowAPI.Runs.BasePath,
                     MLFlowAPI.Runs.LogParam),
                 _getParameters(
-                    ("run_uuid", run_uuid),
+                    ("run_id", run_id),
                     ("key", key),
                     ("value", value)
                 ));

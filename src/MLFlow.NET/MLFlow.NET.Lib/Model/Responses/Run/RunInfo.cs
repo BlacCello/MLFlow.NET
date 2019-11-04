@@ -4,8 +4,8 @@ namespace MLFlow.NET.Lib.Model.Responses.Run
 {
     public class RunInfo
     {
-        [JsonProperty("run_uuid")]
-        public string RunUuid { get; set; }
+        [JsonProperty("run_id")]
+        public string RunId { get; set; }
         [JsonProperty("experiment_id")]
         public string ExperimentId { get; set; }
         [JsonProperty("name")]
