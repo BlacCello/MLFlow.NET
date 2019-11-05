@@ -15,6 +15,7 @@
         {
             public const string BasePath = "runs";
             public const string Create = "create";
+            public const string Update = "update";
             public const string LogMetric = "log-metric";
             public const string LogParam = "log-parameter";
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MLFlow.NET.Lib.Contract;
@@ -13,10 +14,16 @@ namespace MLFlow.NET.Lib.Services
     {
         private readonly IOptions<MLFlowConfiguration> _config;
         private readonly HttpClient _client;
+
         public HttpService(IOptions<MLFlowConfiguration> config)
         {
             _config = config;
             _client = new HttpClient { BaseAddress = new Uri(config.Value.MlFlowServerBaseUrl) };
+            if (config.Value.MLFlowServerAuthentication)
+            {
+                var byteArray = Encoding.ASCII.GetBytes($"{config.Value.MLFLowServerUser}:{config.Value.MLFlowServerPassword}");
+                _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            }
         }
 
         string _serialise<T>(T request)

@@ -59,7 +59,7 @@ namespace MLFlow.NET.Lib.Services
 
         public async Task<RunResponse> UpdateRun(UpdateRunRequest request)
         {
-            var response = await _httpService.Post<RunResponse, UpdateRunRequest>(_getPath(MLFlowAPI.Runs.BasePath, MLFlowAPI.Runs.Create), request);
+            var response = await _httpService.Post<RunResponse, UpdateRunRequest>(_getPath(MLFlowAPI.Runs.BasePath, MLFlowAPI.Runs.Update), request);
             return response;
         }
 
@@ -99,7 +99,7 @@ namespace MLFlow.NET.Lib.Services
                     ("run_id", run_id),
                     ("key", key),
                     ("value", value.ToString()),
-                    ("timeStamp", timeStamp.ToString())
+                    ("timestamp", timeStamp.ToString())
                 ));
 
             return response;
@@ -120,7 +120,7 @@ namespace MLFlow.NET.Lib.Services
                     ("key", key),
                     ("value", value.ToString()),
                     ("step", step.ToString()),
-                    ("timeStamp", timeStamp.ToString())
+                    ("timestamp", timeStamp.ToString())
                 ));
 
             return response;
