@@ -14,6 +14,7 @@ namespace MLFlow.NET.Lib.Services
     {
         private readonly IOptions<MLFlowConfiguration> _config;
         private readonly HttpClient _client;
+        private readonly int retries;
 
         public HttpService(IOptions<MLFlowConfiguration> config)
         {
@@ -24,7 +25,10 @@ namespace MLFlow.NET.Lib.Services
                 var byteArray = Encoding.ASCII.GetBytes($"{config.Value.MLFLowServerUser}:{config.Value.MLFlowServerPassword}");
                 _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
             }
+
+            retries = config.Value.Retries < 1 ? 1 : config.Value.Retries;
         }
+
 
         string _serialise<T>(T request)
         {
@@ -42,50 +46,71 @@ namespace MLFlow.NET.Lib.Services
 
         public async Task<T> Post<T, Y>(string urlPart, Y request) where T : class where Y : class
         {
-            // Call asynchronous network methods in a try/catch block to handle exceptions
-            try
+            for (int attempt = 0; attempt < retries; attempt++)
             {
 
-                var uri = _getUrl(urlPart);
-                var content = new StringContent(_serialise(request));
-                var response = await _client.PostAsync(uri, content);
+                // Call asynchronous network methods in a try/catch block to handle exceptions
+                try
+                {
 
-                response.EnsureSuccessStatusCode();
+                    var uri = _getUrl(urlPart);
+                    var content = new StringContent(_serialise(request));
+                    var response = await _client.PostAsync(uri, content);
 
-                var responseBody = await response.Content.ReadAsStringAsync();
-                var result = JsonConvert.DeserializeObject<T>(responseBody);
-                return result;
+                    response.EnsureSuccessStatusCode();
 
+                    var responseBody = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<T>(responseBody);
+                    return result;
+
+                }
+                catch (HttpRequestException e)
+                {
+                    if (attempt + 1 == retries)
+                    {
+                        Console.WriteLine($"\nMLFlow - no more attempts - Exception caught: {e}\n");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"MLFlow POST - Attempt {attempt} failed with {e.Message}!");
+                        await Task.Delay(_config.Value.RetryTimeoutMillis);
+                    }
+
+                }
             }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
-
             return null;
         }
 
         public async Task<T> Get<T, Y>(string urlPart, Y request) where T : class where Y : class
         {
-            try
+            for (int attempt = 0; attempt < retries; attempt++)
             {
-                var path = $"{_config.Value.MlFlowServerBaseUrl}/{_config.Value.APIBase}{urlPart}?{request.GetQueryString()}";
-                var response = await _client.GetAsync(path);
-                var result = default(T);
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var responseBody = await response.Content.ReadAsStringAsync();
-                    result = JsonConvert.DeserializeObject<T>(responseBody);
+                    var path = $"{_config.Value.MlFlowServerBaseUrl}/{_config.Value.APIBase}{urlPart}?{request.GetQueryString()}";
+                    var response = await _client.GetAsync(path);
+                    var result = default(T);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        result = JsonConvert.DeserializeObject<T>(responseBody);
+                    }
+                    return result;
                 }
-                return result;
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
+                catch (HttpRequestException e)
+                {
+                    if (attempt + 1 == retries)
+                    {
+                        Console.WriteLine($"\nMLFlow - no more attempts - Exception caught: {e}\n");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"MLFlow GET - Attempt {attempt} failed with {e.Message}!");
+                        await Task.Delay(_config.Value.RetryTimeoutMillis);
+                    }
 
+                }
+            }
             return null;
         }
         private Uri _getUrl(string urlPart)

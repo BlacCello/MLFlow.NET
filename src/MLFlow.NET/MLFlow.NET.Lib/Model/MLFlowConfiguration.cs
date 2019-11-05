@@ -11,5 +11,7 @@ namespace MLFlow.NET.Lib.Model
         public string MLFLowServerUser { get; set; }
         public string MLFlowServerPassword { get; set; }
         public string APIBase { get; set; }
+        public int Retries { get; set; }
+        public int RetryTimeoutMillis { get; set; }
     }
 }
