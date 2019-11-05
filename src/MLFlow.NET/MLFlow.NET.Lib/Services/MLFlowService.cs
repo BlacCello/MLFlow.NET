@@ -6,8 +6,10 @@ using Microsoft.Extensions.Options;
 using MLFlow.NET.Lib.Contract;
 using MLFlow.NET.Lib.Helpers;
 using MLFlow.NET.Lib.Model;
+using MLFlow.NET.Lib.Model.Requests;
 using MLFlow.NET.Lib.Model.Responses.Experiment;
 using MLFlow.NET.Lib.Model.Responses.Run;
+using Newtonsoft.Json;
 
 namespace MLFlow.NET.Lib.Services
 {
@@ -22,23 +24,20 @@ namespace MLFlow.NET.Lib.Services
             _config = config;
             _httpService = httpService;
         }
-        public async Task<CreateResponse> CreateExperiment(
-            string name,
-            string artifact_location = null)
+        public async Task<CreateResponse> CreateExperiment(ExperimentRequest request)
         {
-            var response = await _httpService.Post<CreateResponse, Dictionary<string, string>>(_getPath(MLFlowAPI.Experiments.BasePath, MLFlowAPI.Experiments.Create),
-                _getParameters(("name", name), ("artifact_location", artifact_location)));
+            var response = await _httpService.Post<CreateResponse, ExperimentRequest>(
+                _getPath(MLFlowAPI.Experiments.BasePath, MLFlowAPI.Experiments.Create),
+                request);
             return response;
         }
 
-        public async Task<CreateResponse> GetOrCreateExperiment(
-            string name,
-            string artifact_location = null)
+        public async Task<CreateResponse> GetOrCreateExperiment(ExperimentRequest request)
         {
 
             var experiments = await ListExperiments(ViewType.ALL);
 
-            var existing = experiments.Experiments.FirstOrDefault(_ => _.Name.ToLower() == name.ToLower());
+            var existing = experiments.Experiments.FirstOrDefault(_ => _.Name.ToLower() == request.Name.ToLower());
 
             if (existing != null)
             {
@@ -48,7 +47,7 @@ namespace MLFlow.NET.Lib.Services
                 };
             }
 
-            return await CreateExperiment(name, artifact_location);
+            return await CreateExperiment(request);
         }
 
         public async Task<RunResponse> CreateRun(CreateRunRequest request)
@@ -65,8 +64,6 @@ namespace MLFlow.NET.Lib.Services
 
         public async Task<ListExperimentsResponse> ListExperiments(ViewType viewtype)
         {
-
-
             var response = await _httpService.Get<ListExperimentsResponse, Object>(
                 _getPath(MLFlowAPI.Experiments.BasePath, MLFlowAPI.Experiments.List),
                 new { viewtype = viewtype.ToString() });
@@ -83,75 +80,47 @@ namespace MLFlow.NET.Lib.Services
             return response;
         }
 
-
-        public async Task<LogMetric> LogMetric(string run_id,
-            string key, double value, long? timeStamp = null)
+        public async Task<LogMetric> LogMetric(MetricRequest request)
         {
-            if (!timeStamp.HasValue)
+            if (!request.TimeStamp.HasValue)
             {
-                timeStamp = UnixDateTimeHelpers.GetCurrentTimestampMilliseconds();
+                request.TimeStamp = UnixDateTimeHelpers.GetCurrentTimestampMilliseconds();
             }
 
-            var response = await _httpService.Post<LogMetric, Dictionary<string, string>>(
+            var response = await _httpService.Post<LogMetric, MetricRequest>(
                 _getPath(MLFlowAPI.Runs.BasePath,
                     MLFlowAPI.Runs.LogMetric),
-                _getParameters(
-                    ("run_id", run_id),
-                    ("key", key),
-                    ("value", value.ToString()),
-                    ("timestamp", timeStamp.ToString())
-                ));
+                    request);
 
             return response;
         }
 
-        public async Task<LogMetric> LogMetric(string run_id, string key, double value, int step, long? timeStamp = null)
+        public async Task<LogParam> LogParameter(ParamRequest request)
         {
-            if (!timeStamp.HasValue)
-            {
-                timeStamp = UnixDateTimeHelpers.GetCurrentTimestampMilliseconds();
-            }
-
-            var response = await _httpService.Post<LogMetric, Dictionary<string, string>>(
-                _getPath(MLFlowAPI.Runs.BasePath,
-                    MLFlowAPI.Runs.LogMetric),
-                _getParameters(
-                    ("run_id", run_id),
-                    ("key", key),
-                    ("value", value.ToString()),
-                    ("step", step.ToString()),
-                    ("timestamp", timeStamp.ToString())
-                ));
-
-            return response;
-        }
-
-        public async Task<LogParam> LogParameter(string run_id,
-            string key, string value)
-        {
-            var response = await _httpService.Post<LogParam, Dictionary<string, string>>(
+            var response = await _httpService.Post<LogParam, ParamRequest>(
                 _getPath(MLFlowAPI.Runs.BasePath,
                     MLFlowAPI.Runs.LogParam),
-                _getParameters(
-                    ("run_id", run_id),
-                    ("key", key),
-                    ("value", value)
-                ));
+                    request);
 
             return response;
         }
 
-        string _getPath(string basePart, string method)
+        public async Task<LogBatch> LogBatch(BatchRequest request)
         {
-            return $"{basePart}/{method}";
+            if (request.Metrics.Any(m => !m.TimeStamp.HasValue)) {
+                throw new ArgumentException("You need to assign a timestamp for every metric you are using in the batch request.");
+            }
+            var response = await _httpService.Post<LogBatch, BatchRequest>(
+                _getPath(MLFlowAPI.Runs.BasePath,
+                    MLFlowAPI.Runs.LogBatch),
+                    request);
+
+            return response;
         }
 
-        private Dictionary<string, string> _getParameters(params (string name, string value)[] items)
+        private string _getPath(string basePart, string method)
         {
-            return items.Where(i =>
-                !string.IsNullOrWhiteSpace(i.name)
-                && !string.IsNullOrWhiteSpace(i.value))
-                .ToDictionary(i => i.name, i => i.value);
+            return $"{basePart}/{method}";
         }
     }
 }

@@ -18,6 +18,7 @@
             public const string Update = "update";
             public const string LogMetric = "log-metric";
             public const string LogParam = "log-parameter";
+            public const string LogBatch = "log-batch";
         }
 
        
